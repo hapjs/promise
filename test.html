@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+    <script src="promise.js"></script>
+    <script>
+        var promise = new Promise(function(resolve, reject){
+            setTimeout(function(){
+                Math.random() > .5 ? 
+                    resolve('{ "a": 1 }') : 
+                    reject('failure');
+            }, 500);
+        });
+
+        promise.then(function(data){
+            console.log(data);
+            return JSON.parse(data);
+        }).then(function(data){
+            console.log(data);
+        }).catch(function(error){
+            console.log(error);
+        });
+
+        setTimeout(function(){
+            promise.then(function(data){
+                console.log(data);
+            }, function(error){
+                console.log(error);
+            });
+        }, 2000);
+    </script>
+</body>
+</html>
