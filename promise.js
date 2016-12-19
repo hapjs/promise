@@ -20,21 +20,24 @@
             emmiter.call(this);
         },
         binder = function(status){
-            return function(fn){
+            return function(fn, callback){
                 if(typeof fn !== 'function') return;
-                this[status === REJECT ? '_rejects' : '_resolves'].push(fn);
+                this[status === REJECT ? '_rej' : '_res'].push(function(){
+                    var val = this.fn.apply(this.context, arguments);
+                    if(typeof this.cb == 'function'){
+                        this.cb(val);
+                    };
+                }.bind({ context: this, fn: fn, cb: callback}));
                 emmiter.call(this);
             };
         },
         emmiter = function(){
-            var status = this._status, 
-                fns = this[status === REJECT ? '_rejects' : '_resolves'],
-                val = this._value;
+            var status = this._status, fns = this[status === REJECT ? '_rej' : '_res'];
             if(this._status === PEDDING){
                 return;
             }else{
                 while(fns.length){
-                    val = fns.shift().call(this, val);
+                    fns.shift().call(this, this._value);
                 };
             };
         },
@@ -47,20 +50,20 @@
 
     var Promise = function (callback) {
         this._status = PEDDING;
-        this._rejects = [];
-        this._resolves = [];
+        this._rej = [];
+        this._res = [];
         callback(reslover.bind(this), rejecter.bind(this));
     }
 
     Promise.prototype = {
         then: function (success, failure) {
-            binder(RESOLVE).bind(this)(success);
-            binder(REJECT).bind(this)(failure);
-            return this;
+            return new Promise(function(res, rej){
+                binder(RESOLVE).bind(this)(success, res);
+                binder(REJECT).bind(this)(failure, rej);
+            }.bind(this));
         },
         catch: function (failure) {
-            binder(REJECT).bind(this)(failure);
-            return this;
+            return this.then(undefined, failure);
         }
     }
 
